@@ -1,0 +1,878 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#1a1a2e;--secondary:#16213e;--accent:#0f3460;
+  --gold:#f5a623;--gold2:#e8941f;--emerald:#27ae60;--ruby:#e74c3c;
+  --sky:#3498db;--purple:#8e44ad;--teal:#1abc9c;
+  --bg:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+  --card:rgba(255,255,255,0.06);--card2:rgba(255,255,255,0.1);
+  --border:rgba(255,255,255,0.12);--text:#f0f0f0;--muted:rgba(240,240,240,0.6);
+  --radius:16px;--radius2:12px;--radius3:8px;
+  --shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;position:relative}
+body::before{content:'';position:fixed;inset:0;background:var(--bg);z-index:-1}
+
+/* Animated background particles */
+.particles{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.particle{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--gold);opacity:0;animation:float linear infinite}
+@keyframes float{0%{transform:translateY(100vh) rotate(0deg);opacity:0}10%{opacity:0.6}90%{opacity:0.3}100%{transform:translateY(-20px) rotate(720deg);opacity:0}}
+
+/* Screen management */
+.screen{display:none;min-height:100vh;padding:20px;position:relative;z-index:1}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+
+/* Cursor glow */
+#cursor-glow{position:fixed;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,rgba(245,166,35,0.6),transparent);pointer-events:none;transition:transform 0.1s;z-index:9999;transform:translate(-50%,-50%)}
+
+/* Cards */
+.card{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.card-lg{padding:32px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius2);border:none;cursor:pointer;font-size:15px;font-weight:600;transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);text-align:center;position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity 0.2s}
+.btn:hover::after{opacity:1}
+.btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.btn:active{transform:scale(0.97)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a00}
+.btn-emerald{background:linear-gradient(135deg,var(--emerald),#219a52);color:#fff}
+.btn-ruby{background:linear-gradient(135deg,var(--ruby),#c0392b);color:#fff}
+.btn-sky{background:linear-gradient(135deg,var(--sky),#2980b9);color:#fff}
+.btn-ghost{background:rgba(255,255,255,0.08);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(255,255,255,0.15)}
+.btn-full{width:100%}
+
+/* Category buttons - special jiggly hover */
+.cat-btn{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all 0.3s;text-align:center;position:relative;overflow:hidden}
+.cat-btn:hover{animation:jiggle 0.4s ease-in-out;transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.5);border-color:rgba(255,255,255,0.3)}
+@keyframes jiggle{0%{transform:translateY(-6px) rotate(0deg)}25%{transform:translateY(-8px) rotate(-1deg)}50%{transform:translateY(-6px) rotate(1deg)}75%{transform:translateY(-8px) rotate(-0.5deg)}100%{transform:translateY(-6px) rotate(0deg)}}
+.cat-btn .cat-icon{font-size:40px;margin-bottom:10px;display:block}
+.cat-btn .cat-name{font-size:15px;font-weight:700;color:var(--text)}
+.cat-btn .cat-desc{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* Progress bar */
+.progress-bar{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--emerald));transition:width 0.4s ease}
+
+/* Answer options */
+.answer-opt{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:16px 20px;cursor:pointer;transition:all 0.25s;text-align:left;width:100%;font-size:14px;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.answer-opt:hover{background:var(--card2);border-color:rgba(255,255,255,0.3);transform:translateX(4px)}
+.answer-opt.correct{background:rgba(39,174,96,0.25);border-color:var(--emerald);animation:pulse-green 0.5s}
+.answer-opt.wrong{background:rgba(231,76,60,0.25);border-color:var(--ruby)}
+.answer-opt.disabled{cursor:default;pointer-events:none}
+.opt-letter{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+@keyframes pulse-green{0%{box-shadow:0 0 0 0 rgba(39,174,96,0.7)}70%{box-shadow:0 0 0 15px rgba(39,174,96,0)}100%{box-shadow:0 0 0 0 rgba(39,174,96,0)}}
+
+/* Stat badges */
+.stat-row{display:flex;gap:12px;flex-wrap:wrap}
+.stat-badge{background:var(--card);border:1px solid var(--border);border-radius:var(--radius3);padding:8px 14px;font-size:13px;display:flex;align-items:center;gap:6px}
+
+/* Timer */
+.timer-ring{position:relative;width:60px;height:60px}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring .timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.timer-urgent{color:var(--ruby)!important;animation:blink 0.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* Modal overlay */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{max-width:480px;width:100%;max-height:80vh;overflow-y:auto}
+
+/* Explanation box */
+.explanation-box{background:rgba(52,152,219,0.15);border:1px solid rgba(52,152,219,0.4);border-radius:var(--radius2);padding:16px;margin-top:16px}
+
+/* Celebration */
+.celebration{text-align:center;animation:fadeInUp 0.5s ease}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.trophy{font-size:80px;animation:bounce 0.6s ease-in-out 0.3s both}
+@keyframes bounce{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.firework{position:fixed;pointer-events:none;z-index:2000}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:2px}
+
+/* Responsive grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:600px){.grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}}
+
+/* Analysis bars */
+.analysis-bar{height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin-top:6px}
+.analysis-fill{height:100%;border-radius:4px;transition:width 1s ease}
+
+/* Level badge */
+.level-badge{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a00;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+
+/* Tabs */
+.tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:var(--radius2);padding:4px;gap:4px}
+.tab{flex:1;padding:8px;text-align:center;border-radius:var(--radius3);cursor:pointer;font-size:13px;transition:all 0.2s;border:none;background:transparent;color:var(--muted)}
+.tab.active{background:rgba(255,255,255,0.15);color:var(--text);font-weight:600}
+
+/* Notification toast */
+.toast{position:fixed;top:20px;right:20px;background:var(--emerald);color:#fff;padding:12px 20px;border-radius:var(--radius2);font-size:14px;z-index:5000;animation:slideIn 0.3s ease,slideOut 0.3s ease 2.7s forwards;pointer-events:none}
+@keyframes slideIn{from{transform:translateX(120%)}to{transform:translateX(0)}}
+@keyframes slideOut{from{transform:translateX(0)}to{transform:translateX(120%)}}
+
+/* Sound indicator */
+.sound-btn{position:fixed;top:20px;left:20px;z-index:100;background:rgba(255,255,255,0.1);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all 0.2s}
+.sound-btn:hover{background:rgba(255,255,255,0.2)}
+
+h1{font-size:clamp(24px,5vw,36px);font-weight:800;letter-spacing:-0.5px}
+h2{font-size:clamp(18px,4vw,24px);font-weight:700}
+h3{font-size:16px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div id="cursor-glow"></div>
+<div class="particles" id="particles"></div>
+<div class="sound-btn" id="soundBtn" onclick="toggleSound()" title="Bunyi">🔊</div>
+
+<!-- ========== SCREEN: HOME ========== -->
+<div class="screen active" id="screen-home">
+  <div style="width:100%;max-width:640px">
+    <!-- Header -->
+    <div style="text-align:center;padding:40px 0 32px">
+      <div style="font-size:60px;margin-bottom:12px">🕌</div>
+      <h1 style="background:linear-gradient(135deg,var(--gold),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">DiyanetPrep</h1>
+      <p style="color:var(--muted);margin-top:8px;font-size:15px">Persediaan Temu Duga Biasiswa Turkiye Diyanet</p>
+      
+      <!-- Player stats -->
+      <div id="home-stats" style="display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap">
+        <div class="level-badge">⚔️ <span id="level-display">Tahap 1</span></div>
+        <div class="stat-badge">⭐ <span id="exp-display">0 EXP</span></div>
+        <div class="stat-badge">🪙 <span id="coin-display">0 Syiling</span></div>
+      </div>
+      
+      <!-- EXP Bar -->
+      <div style="margin-top:16px;max-width:300px;margin-left:auto;margin-right:auto">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+          <span>EXP</span><span id="exp-bar-label">0 / 100</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="exp-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Mode selector -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:12px;text-align:center;color:var(--muted)">🎮 Pilih Mod Permainan</h3>
+      <div class="tabs">
+        <button class="tab active" id="tab-casual" onclick="selectMode('casual')">😌 Santai (Tanpa Had Masa)</button>
+        <button class="tab" id="tab-hard" onclick="selectMode('hard')">⚡ Keras (Berhad Masa)</button>
+      </div>
+    </div>
+
+    <!-- Category buttons -->
+    <h3 style="text-align:center;margin-bottom:16px;color:var(--muted)">📚 Pilih Kategori</h3>
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="cat-btn" onclick="startQuiz('turkiye')">
+        <span class="cat-icon">🇹🇷</span>
+        <div class="cat-name">Pengenalan Turkiye</div>
+        <div class="cat-desc">Sejarah, geografi, budaya &amp; bahasa</div>
+      </div>
+      <div class="cat-btn" onclick="startQuiz('malaysia')">
+        <span class="cat-icon">🇲🇾</span>
+        <div class="cat-name">Pengenalan Malaysia</div>
+        <div class="cat-desc">Sejarah, ekonomi &amp; geopolitik</div>
+      </div>
+      <div class="cat-btn" onclick="startQuiz('agama')">
+        <span class="cat-icon">☪️</span>
+        <div class="cat-name">Ilmu Agama</div>
+        <div class="cat-desc">Tauhid, Feqah, Tajwid &amp; Sirah</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="grid-2" style="margin-bottom:16px">
+      <button class="btn btn-ghost btn-full" onclick="showScreen('screen-analysis')">📊 Analisis Prestasi</button>
+      <button class="btn btn-ghost btn-full" onclick="showFakta()">🌟 Fakta Menarik (10 🪙)</button>
+    </div>
+    <div class="grid-2">
+      <button class="btn btn-ghost btn-full" onclick="exportData()">📤 Eksport Data</button>
+      <button class="btn btn-ghost btn-full" onclick="importData()">📥 Import Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN: QUIZ ========== -->
+<div class="screen" id="screen-quiz">
+  <div style="width:100%;max-width:640px">
+    <!-- Quiz Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="confirmQuit()">← Keluar</button>
+      <div id="quiz-category-badge" class="level-badge">🇹🇷 Turkiye</div>
+      <div id="timer-container" style="display:none">
+        <div class="timer-ring">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+            <circle id="timer-circle" cx="30" cy="30" r="26" fill="none" stroke="var(--gold)" stroke-width="4" stroke-dasharray="163.4" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="timer-text" id="timer-text">20</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="flex:1"><div class="progress-bar"><div class="progress-fill" id="quiz-progress" style="width:0%"></div></div></div>
+      <span id="quiz-counter" style="font-size:13px;color:var(--muted);white-space:nowrap">1 / 10</span>
+    </div>
+
+    <!-- Question card -->
+    <div class="card card-lg" id="question-card" style="margin-bottom:16px;min-height:160px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+        <div id="q-subcategory" style="font-size:12px;color:var(--muted);background:rgba(255,255,255,0.08);padding:4px 10px;border-radius:20px"></div>
+        <div id="q-difficulty" style="font-size:12px;color:var(--gold)">★★★</div>
+      </div>
+      <p id="question-text" style="font-size:16px;line-height:1.7;font-weight:500"></p>
+    </div>
+
+    <!-- Answer options -->
+    <div id="answers-container"></div>
+
+    <!-- Explanation (hidden initially) -->
+    <div id="explanation-container" style="display:none">
+      <div class="explanation-box">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:20px" id="answer-emoji">✅</span>
+          <strong id="answer-verdict" style="font-size:15px"></strong>
+        </div>
+        <p id="explanation-text" style="font-size:14px;line-height:1.7;color:rgba(240,240,240,0.9)"></p>
+        <p id="reference-text" style="font-size:12px;color:var(--muted);margin-top:10px;font-style:italic"></p>
+      </div>
+      <button class="btn btn-gold btn-full" style="margin-top:16px" onclick="nextQuestion()">Soalan Seterusnya →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN: RESULT ========== -->
+<div class="screen" id="screen-result">
+  <div style="width:100%;max-width:540px;text-align:center" id="result-content">
+  </div>
+</div>
+
+<!-- ========== SCREEN: ANALYSIS ========== -->
+<div class="screen" id="screen-analysis">
+  <div style="width:100%;max-width:640px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+      <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="showScreen('screen-home')">← Kembali</button>
+      <h2>📊 Analisis Prestasi</h2>
+    </div>
+    <div id="analysis-content">
+      <div class="card" style="text-align:center;padding:40px">
+        <div style="font-size:40px;margin-bottom:12px">📈</div>
+        <p style="color:var(--muted)">Tiada data lagi. Sila habiskan sekurang-kurangnya satu sesi kuiz.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: FAKTA MENARIK ========== -->
+<div class="modal-overlay" id="modal-fakta" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="card modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3>🌟 Fakta Menarik</h3>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:13px" onclick="document.getElementById('modal-fakta').style.display='none'">✕</button>
+    </div>
+    <div id="fakta-content"></div>
+  </div>
+</div>
+
+<!-- ========== MODAL: CONFIRM QUIT ========== -->
+<div class="modal-overlay" id="modal-quit" style="display:none">
+  <div class="card modal" style="max-width:360px;text-align:center">
+    <div style="font-size:40px;margin-bottom:16px">⚠️</div>
+    <h3 style="margin-bottom:12px">Keluar Kuiz?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Kemajuan sesi ini akan hilang. Anda pasti?</p>
+    <div class="grid-2">
+      <button class="btn btn-ruby btn-full" onclick="quitQuiz()">Ya, Keluar</button>
+      <button class="btn btn-ghost btn-full" onclick="document.getElementById('modal-quit').style.display='none'">Sambung</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA: QUESTIONS BANK
+// ============================================================
+const QUESTIONS = {
+  turkiye: [
+    // SEJARAH
+    {sub:"Sejarah",q:"Apakah nama ibu kota pertama Kerajaan Uthmaniyyah sebelum Constantinople?",opts:["Bursa","Edirne","Ankara","Iznik"],ans:0,exp:"Bursa menjadi ibu kota pertama Kerajaan Uthmaniyyah (1335–1363) setelah ditakluki oleh Sultan Orhan I. Ia merupakan pusat pertama pentadbiran dan kebudayaan Uthmaniyyah.",ref:"Sumber: Finkel, C. (2005). Osman's Dream: The Story of the Ottoman Empire."},
+    {sub:"Sejarah",q:"Siapakah pengasas Republik Turkiye yang moden pada tahun 1923?",opts:["İsmet İnönü","Mustafa Kemal Atatürk","Cemal Paşa","Enver Paşa"],ans:1,exp:"Mustafa Kemal Atatürk mengisytiharkan Republik Turkiye pada 29 Oktober 1923 dan menjadi presiden pertamanya. Beliau memperkenalkan pelbagai reformasi moden termasuk penulisan Latin, sekularisme, dan hak mengundi wanita.",ref:"Sumber: Zürcher, E.J. (2004). Turkey: A Modern History. I.B. Tauris."},
+    {sub:"Sejarah",q:"Pada tahun berapa Sultan Mehmed II berjaya menakluki Constantinople?",opts:["1453","1517","1389","1402"],ans:0,exp:"Sultan Mehmed II (dikenali sebagai Fatih atau 'Si Penakluk') berjaya menakluki Constantinople pada 29 Mei 1453, menamatkan Empayar Byzantine dan menjadikannya ibu kota Uthmaniyyah.",ref:"Sumber: Nicol, D.M. (1993). The Last Centuries of Byzantium. Cambridge University Press."},
+    {sub:"Geografi",q:"Apakah nama selat yang memisahkan bahagian Eropah dan Asia di Turkiye?",opts:["Selat Dardanelles","Selat Bosphorus","Selat Aegean","Selat Marmara"],ans:1,exp:"Selat Bosphorus (Boğaziçi) memisahkan bahagian Eropah (Trakya) dan Asia (Anatolia) di Turkiye. Istanbul terletak di kedua-dua belah selat ini, menjadikannya bandar yang unik merentasi dua benua.",ref:"Sumber: National Geographic Atlas of the World."},
+    {sub:"Geografi",q:"Apakah nama gunung tertinggi di Turkiye?",opts:["Gunung Erciyes","Gunung Ararat","Gunung Uludağ","Gunung Nemrut"],ans:1,exp:"Gunung Ararat (Ağrı Dağı) dengan ketinggian 5,137 meter ialah gunung tertinggi di Turkiye. Ia juga mempunyai kepentingan dalam tradisi keagamaan sebagai lokasi yang dikaitkan dengan kapal Nabi Nuh a.s.",ref:"Sumber: Turkish Geological Survey (MTA)."},
+    {sub:"Ekonomi",q:"Apakah mata wang rasmi Turkiye?",opts:["Euro","Lira Turkiye","Dinar","Dirham"],ans:1,exp:"Mata wang rasmi Turkiye ialah Lira Turkiye (Türk Lirası, kod: TRY). Turkiye ialah anggota G20 dan mempunyai ekonomi terbesar ke-19 di dunia mengikut KDNK.",ref:"Sumber: Bank Dunia & Kementerian Hazanah dan Kewangan Turkiye."},
+    {sub:"Geopolitik",q:"Turkiye adalah ahli bagi organisasi antarabangsa manakah?",opts:["ASEAN","NATO","OPEC","BRICS"],ans:1,exp:"Turkiye adalah anggota NATO (Pertubuhan Perjanjian Atlantik Utara) sejak tahun 1952. Turkiye juga merupakan ahli G20, OECD, dan OIC, serta negara calon untuk menyertai Kesatuan Eropah.",ref:"Sumber: NATO Official Website (nato.int)."},
+    {sub:"Pentadbiran",q:"Apakah sistem kerajaan yang diamalkan di Turkiye pada masa kini?",opts:["Monarki Berperlembagaan","Republik Parlimen","Republik Presiden","Republik Separa-Presiden"],ans:2,exp:"Sejak referendum 2017 yang berkuat kuasa pada 2018, Turkiye mengamalkan sistem Republik Presiden. Presiden menjadi ketua eksekutif yang memiliki kuasa luas, menggantikan sistem parlimen yang lama.",ref:"Sumber: Perlembagaan Turkiye (Türkiye Cumhuriyeti Anayasası), pindaan 2017."},
+    {sub:"Kebudayaan",q:"Apakah tarian tradisional yang terkenal dari wilayah Anatolia Tengah Turkiye?",opts:["Flamenco","Sema (Tarian Darwis)","Tango","Waltz"],ans:1,exp:"Tarian Sema ialah upacara mistik Sufi yang diasaskan oleh pengikut Jalaluddin Rumi di Konya. Ia melibatkan gerakan berputar yang melambangkan pencarian ruhani. UNESCO telah menyenaraikannya sebagai Warisan Kemanusiaan Tidak Ketara.",ref:"Sumber: UNESCO Intangible Cultural Heritage List (ich.unesco.org)."},
+    {sub:"Bahasa",q:"Bagaimana cara menyebut 'Terima kasih' dalam bahasa Turkiye?",opts:["Merhaba","Günaydın","Teşekkür ederim","Evet"],ans:2,exp:"'Teşekkür ederim' (diucap: tesh-ek-kür e-de-rim) bermaksud 'Terima kasih' dalam bahasa Turkiye. Alternatif yang lebih ringkas ialah 'Sağ ol' (diucap: saa-ol) yang bermaksud 'Sihat-lah' (ungkapan rasa syukur).",ref:"Sumber: Kamus Bahasa Turkiye - Türk Dil Kurumu (TDK)."},
+    {sub:"Sejarah",q:"Apakah nama perang yang membolehkan Kerajaan Uthmaniyyah menguasai Mesir pada tahun 1517?",opts:["Perang Lepanto","Perang Mohacs","Perang Mercidabik","Perang Chaldiran"],ans:2,exp:"Perang Mercidabik (1516) antara tentera Uthmaniyyah di bawah Sultan Selim I dan tentera Mamluk Mesir mengakibatkan kemenangan besar Uthmaniyyah. Ini membuka jalan untuk penaklukan Mesir pada 1517 dan pemindahan khilafah ke Uthmaniyyah.",ref:"Sumber: Holt, P.M. (1966). Egypt and the Fertile Crescent 1516-1922. Cornell University Press."},
+    {sub:"Geografi",q:"Sungai manakah yang terpanjang di Turkiye?",opts:["Sungai Tigris","Sungai Euphrates","Sungai Kızılırmak","Sungai Sakarya"],ans:2,exp:"Sungai Kızılırmak (Sungai Merah) sepanjang 1,355 km ialah sungai terpanjang yang sepenuhnya mengalir dalam sempadan Turkiye. Nama 'Kızılırmak' bermaksud 'Sungai Merah' dalam bahasa Turkiye.",ref:"Sumber: Jabatan Sumber Air Turkiye (DSİ)."},
+    {sub:"Budaya",q:"Istanbul pernah menjadi ibu kota berapa buah empayar besar?",opts:["1","2","3","4"],ans:2,exp:"Istanbul (dahulu Constantinople/Byzantium) pernah menjadi ibu kota tiga empayar besar: Empayar Roman Timur (Byzantine), Empayar Latin, dan Empayar Uthmaniyyah. Inilah yang menjadikannya antara bandar paling bersejarah di dunia.",ref:"Sumber: Freely, J. (1996). Istanbul: The Imperial City. Viking."},
+    // BONUS - DIYANET
+    {sub:"Bonus Diyanet",q:"Pada tahun berapakah Vakıf Diyanet Turkiye (Turkiye Diyanet Foundation) ditubuhkan?",opts:["1975","1982","1968","1990"],ans:0,exp:"Vakıf Diyanet Turkiye (TDV - Türkiye Diyanet Vakfı) ditubuhkan pada tahun 1975. Ia merupakan badan bukan kerajaan yang berperanan menyokong aktiviti keagamaan, pendidikan, dan kebajikan di dalam dan luar Turkiye.",ref:"Sumber: Laman Rasmi TDV (diyanet.org.tr)."},
+  ],
+  malaysia: [
+    {sub:"Sejarah",q:"Siapakah yang mengisytiharkan kemerdekaan Malaya pada 31 Ogos 1957?",opts:["Tunku Abdul Rahman","Tun Abdul Razak","Dato' Onn Jaafar","Tun Hussein Onn"],ans:0,exp:"Tunku Abdul Rahman Putra Al-Haj, Perdana Menteri pertama Malaysia, mengisytiharkan kemerdekaan Persekutuan Tanah Melayu pada 31 Ogos 1957 di Padang Kelab Selangor (kini Dataran Merdeka), Kuala Lumpur.",ref:"Sumber: Arkib Negara Malaysia & Arkib Pemerintahan Kerajaan Malaysia."},
+    {sub:"Geografi",q:"Apakah nama gunung tertinggi di Malaysia?",opts:["Gunung Tahan","Gunung Kinabalu","Gunung Mulu","Gunung Ledang"],ans:1,exp:"Gunung Kinabalu di Sabah dengan ketinggian 4,095 meter ialah gunung tertinggi di Malaysia dan di Asia Tenggara. Ia juga merupakan tapak UNESCO Warisan Dunia sejak tahun 2000.",ref:"Sumber: Jabatan Ukur dan Pemetaan Malaysia (JUPEM) & UNESCO WHC."},
+    {sub:"Pentadbiran",q:"Apakah nama sistem kerajaan yang diamalkan di Malaysia?",opts:["Republik Persekutuan","Monarki Mutlak","Monarki Berperlembagaan Persekutuan","Republik Parlimen"],ans:2,exp:"Malaysia mengamalkan sistem Monarki Berperlembagaan Persekutuan di mana Yang di-Pertuan Agong adalah ketua negara, sementara Perdana Menteri adalah ketua kerajaan. Sistem ini unik kerana terdapat sembilan raja Melayu yang bergiliran menjadi Agong setiap 5 tahun.",ref:"Sumber: Perlembagaan Persekutuan Malaysia, Artikel 32 & 40."},
+    {sub:"Ekonomi",q:"Apakah sektor utama yang paling banyak menyumbang kepada KDNK Malaysia sebelum pelbagaian ekonomi?",opts:["Perikanan","Pertanian (getah dan bijih timah)","Teknologi Maklumat","Pelancongan"],ans:1,exp:"Sebelum pelbagaian ekonomi, Malaysia sangat bergantung kepada pertanian khususnya getah (sejak 1877) dan perlombongan bijih timah. Malaysia pernah menjadi pengeluar getah dan bijih timah terbesar di dunia.",ref:"Sumber: Bank Negara Malaysia - Laporan Ekonomi Malaysia."},
+    {sub:"Geopolitik",q:"Malaysia adalah ahli pengasas bagi organisasi serantau manakah?",opts:["APEC","ASEAN","SCO","SAARC"],ans:1,exp:"Malaysia adalah salah satu daripada lima negara pengasas ASEAN (Persatuan Negara-Negara Asia Tenggara) yang ditubuhkan pada 8 Ogos 1967 melalui Deklarasi Bangkok. Empat negara lain ialah Indonesia, Filipina, Singapura, dan Thailand.",ref:"Sumber: ASEAN Official Website (asean.org) & Arkib Negara Malaysia."},
+    {sub:"Budaya",q:"Apakah minuman tradisional Malaysia yang dibuat daripada teh dengan susu pekat manis?",opts:["Kopi O","Teh Tarik","Bandung","Cincau"],ans:1,exp:"Teh Tarik ialah minuman ikonik Malaysia yang dibuat daripada teh pekat yang dicampur susu pekat manis dan 'ditarik' berulang kali antara dua bekas untuk menghasilkan buih yang lemak. Ia merupakan warisan budaya minuman Malaysia yang terkenal di peringkat antarabangsa.",ref:"Sumber: Jabatan Warisan Negara Malaysia."},
+    {sub:"Sejarah",q:"Kesultanan Melayu manakah yang dianggap empayar pertama di rantau Asia Tenggara pada abad ke-15?",opts:["Kesultanan Johor","Kesultanan Kedah","Kesultanan Melaka","Kesultanan Brunei"],ans:2,exp:"Kesultanan Melaka yang diasaskan oleh Parameswara sekitar 1400 M merupakan empayar Melayu pertama yang menjadi pusat perdagangan, penyebaran Islam, dan kebudayaan Melayu di rantau ini. Ia menarik pedagang dari Arab, India, China, dan Eropah.",ref:"Sumber: Sejarah Melayu (Sulalatus Salatin) & Cortesao, A. (1944). The Suma Oriental of Tome Pires."},
+    {sub:"Pentadbiran",q:"Berapakah bilangan negeri dan wilayah persekutuan yang terdapat dalam Malaysia?",opts:["13 negeri, 2 WP","13 negeri, 3 WP","11 negeri, 3 WP","14 negeri, 2 WP"],ans:1,exp:"Malaysia terdiri daripada 13 buah negeri dan 3 Wilayah Persekutuan, iaitu Kuala Lumpur, Putrajaya, dan Labuan. Tiga belas negeri dibahagikan kepada Semenanjung Malaysia (11 negeri) dan Malaysia Timur (Sabah dan Sarawak).",ref:"Sumber: Jabatan Perdana Menteri Malaysia & Perlembagaan Persekutuan."},
+    {sub:"Geografi",q:"Apakah nama jambatan terpanjang di Malaysia yang menghubungkan Pulau Pinang ke tanah besar?",opts:["Jambatan Sultan Abdul Halim","Jambatan Penang (Pertama)","Jambatan SMART","Jambatan Ampang"],ans:1,exp:"Jambatan Penang atau nama rasminya Jambatan Pulau Pinang (Penang Bridge) sepanjang 13.5 km telah dirasmikan pada 1985. Ia merupakan jambatan terpanjang di Asia ketika dibuka. Jambatan kedua (PTCSB) dibuka pada 2014 dengan panjang 24 km.",ref:"Sumber: Perbadanan Jambatan Pulau Pinang (PBAPP) & Kementerian Kerja Raya."},
+    {sub:"Ekonomi",q:"Apakah nama program transformasi ekonomi jangka panjang yang dilancarkan untuk menjadikan Malaysia negara berpendapatan tinggi menjelang 2020?",opts:["RMK9","Wawasan 2020","Malaysia Madani","Dasar Ekonomi Baru"],ans:1,exp:"Wawasan 2020 (Vision 2020) diperkenalkan oleh PM Tun Dr. Mahathir Mohamad pada 1991 dengan matlamat menjadikan Malaysia negara maju dan berpendapatan tinggi sepenuhnya menjelang tahun 2020, merangkumi sembilan cabaran strategik.",ref:"Sumber: Unit Perancang Ekonomi Malaysia (EPU) & Pidato Tun Dr. Mahathir, 1991."},
+    {sub:"Budaya",q:"Apakah nama tarian tradisional Melayu yang sering dipersembahkan pada majlis rasmi?",opts:["Dikir Barat","Zapin","Joget","Tari Piring"],ans:1,exp:"Zapin merupakan tarian tradisional Melayu yang berasal dari Yaman dan dibawa masuk ke rantau ini oleh pedagang Arab. Ia biasanya diiringi oleh gambus dan marawis. Zapin Malaysia mempunyai variasi tersendiri di setiap negeri.",ref:"Sumber: Akademi Seni Budaya dan Warisan Kebangsaan (ASWARA)."},
+    {sub:"Struktur Sosial",q:"Apakah dasar yang diperkenalkan selepas peristiwa 13 Mei 1969 untuk menangani ketidakseimbangan ekonomi kaum di Malaysia?",opts:["Dasar Pandang ke Timur","Dasar Pertanian Negara","Dasar Ekonomi Baru (DEB)","Dasar Kebudayaan Kebangsaan"],ans:2,exp:"Dasar Ekonomi Baru (DEB) 1971-1990 diperkenalkan untuk menangani kemiskinan dan ketidakseimbangan ekonomi antara kaum pasca-13 Mei 1969. Ia menetapkan sasaran 30% pemilikan ekuiti Bumiputera dalam sektor korporat.",ref:"Sumber: Rancangan Malaysia Kedua (1971) & Laporan Kabinet, Arkib Negara Malaysia."},
+    // BONUS
+    {sub:"Bonus Diyanet",q:"Berapa ramai pelajar Malaysia yang layak diberikan Biasiswa Turkiye Diyanet setiap tahun melalui Vakıf Diyanet?",opts:["10-20","30-50","Bergantung kepada peruntukan tahunan TDV","100"],ans:2,exp:"Bilangan penerima Biasiswa Turkiye Diyanet (TDV Bursları) bergantung kepada peruntukan dan perjanjian bilateral yang dipersetujui setiap tahun. Biasiswa ini merangkumi pengajian di peringkat diploma, ijazah, sarjana dan doktor falsafah di universiti-universiti Turkiye.",ref:"Sumber: Laman Rasmi TDV (tdv.org) & Jabatan Agama Islam Malaysia (JAKIM)."},
+  ],
+  agama: [
+    {sub:"Tauhid",q:"Apakah maksud kalimah 'La ilaha illallah'?",opts:["Muhammad itu utusan Allah","Tiada tuhan yang berhak disembah melainkan Allah","Allah Maha Besar","Segala puji bagi Allah"],ans:1,exp:"'La ilaha illallah' (لا إله إلا الله) bermaksud 'Tiada tuhan yang berhak disembah dengan sebenar-benarnya melainkan Allah'. Ia adalah syahadah pertama yang merupakan rukun utama akidah Islam, mencakupi penafian (nafi) semua tuhan palsu dan penetapan (ithbat) ketuhanan Allah semata-mata.",ref:"Sumber: Ibn Taymiyyah, Kitab al-Iman; Al-Qahtani, Sa'id (2003). La Ilaha Illallah."},
+    {sub:"Feqah",q:"Apakah rukun-rukun wuduk mengikut mazhab Syafie?",opts:["Niat, membasuh muka, membasuh tangan, menyapu kepala, membasuh kaki, tertib","Niat, membasuh muka, membasuh tangan, menyapu kepala, membasuh kaki","Niat, membaca bismillah, membasuh anggota wuduk, berdoa","Membasuh muka, tangan, kepala dan kaki sahaja"],ans:0,exp:"Rukun wuduk mengikut mazhab Syafie ada enam: (1) Niat, (2) Membasuh muka, (3) Membasuh dua tangan hingga siku, (4) Menyapu sebahagian kepala, (5) Membasuh dua kaki hingga buku lali, (6) Tertib (mengikut urutan). Kesemua enam ini mesti dilakukan dengan sempurna.",ref:"Sumber: Nawawi, Imam (1992). Minhaj al-Talibin. Penerbit Darul Fikr; Kementerian Agama Malaysia."},
+    {sub:"Tajwid",q:"Apakah hukum bagi huruf nun mati (نْ) atau tanwin (ً ٍ ٌ) apabila bertemu dengan huruf ba (ب)?",opts:["Izhar","Idgham","Iqlab","Ikhfa"],ans:2,exp:"Apabila nun mati atau tanwin bertemu dengan huruf ba (ب), hukumnya adalah IQLAB. Cara membacanya ialah dengan menukar nun mati/tanwin kepada mim yang disertai ghunnah (dengung) selama dua harakat. Contoh: مِن بَعْدِ dibaca 'mim-ba'di' bukan 'min-ba'di'.",ref:"Sumber: al-Jazari, Ibn (t.t). al-Jazariyyah; Hamdan, Syeikh (2010). Panduan Tajwid al-Quran. DBP Malaysia."},
+    {sub:"Sirah",q:"Di manakah Nabi Muhammad SAW dilahirkan?",opts:["Madinah al-Munawwarah","Makkah al-Mukarramah","Ta'if","Yaman"],ans:1,exp:"Nabi Muhammad SAW dilahirkan di Makkah al-Mukarramah pada 12 Rabiulawal Tahun Gajah (bersamaan 570/571 Masihi) di kawasan yang dikenali sebagai Syib Bani Hashim. Baginda SAW lahir dalam keadaan yatim (ayahnya Abdullah wafat sebelum kelahirannya).",ref:"Sumber: Ibn Hisyam (1990). Sirah al-Nabawiyyah. Darul Kutub al-Ilmiyyah; Mubarakpuri (1995). Raheeq al-Makhtum."},
+    {sub:"Bahasa Arab",q:"Apakah i'rab (perubahan baris) bagi isim yang menjadi fail (subjek) dalam satu ayat Arab?",opts:["Manshub (fathah)","Majrur (kasrah)","Marfu' (dhammah)","Mabni (tetap)"],ans:2,exp:"Fail (فاعل) iaitu subjek atau pelaku dalam ayat Arab berkedudukan MARFU' (مرفوع) yang ditandai dengan baris dhammah (ُ) pada huruf terakhirnya bagi isim mufrad (kata nama tunggal). Contoh: جاءَ مُحَمَّدٌ (Muhammad telah datang) - Muhammad berkedudukan marfu' sebagai fail.",ref:"Sumber: Ibn Ajurrum (t.t). al-Ajurrumiyyah; al-Ghalayyini (2005). Jami' al-Durus al-'Arabiyyah. Jld.1."},
+    {sub:"Tauhid",q:"Berapakah jumlah sifat wajib bagi Allah SWT mengikut ilmu tauhid?",opts:["13","20","99","25"],ans:1,exp:"Sifat wajib bagi Allah SWT berjumlah 20, yang wajib diyakini oleh setiap Muslim mukallaf. Sifat-sifat ini terbahagi kepada: Sifat Nafsiyyah (1), Sifat Salbiyyah (5), Sifat Ma'ani (7), dan Sifat Ma'nawiyyah (7). Lawan bagi sifat wajib ini adalah sifat mustahil (20 juga) dan sifat harus (1).",ref:"Sumber: al-Sanusi, Imam (t.t). Umm al-Barahin (al-Sanusiyyah); Pengajian Tauhid Pondok Tradisional Malaysia."},
+    {sub:"Feqah",q:"Berapakah nisab zakat emas mengikut syariat Islam?",opts:["80 gram","85 gram (20 mithqal)","100 gram","50 gram"],ans:1,exp:"Nisab zakat emas ialah 20 mithqal (dinar) yang bersamaan dengan lebih kurang 85 gram emas tulen (mengikut timbangan moden). Sekiranya simpanan emas mencapai nisab ini dan telah cukup satu tahun (haul), maka wajib dikeluarkan zakat sebanyak 2.5% daripadanya.",ref:"Sumber: Majlis Agama Islam Malaysia (MAIS); al-Nawawi, Imam. al-Majmu'. Jld.5."},
+    {sub:"Sirah",q:"Berapakah tempoh Nabi Muhammad SAW menjalankan dakwah secara sembunyi-sembunyi (dakwah sirriyyah)?",opts:["1 tahun","3 tahun","5 tahun","7 tahun"],ans:1,exp:"Dakwah sirriyyah (dakwah secara rahsia/sembunyi) berlangsung selama 3 tahun, bermula dari penurunan wahyu pertama (610 M) sehingga turunnya perintah untuk berdakwah secara terang-terangan. Golongan pertama yang memeluk Islam ialah Siti Khadijah, Ali bin Abi Talib, Zaid bin Harithah, dan Abu Bakar al-Siddiq.",ref:"Sumber: Ibn Hisyam. Sirah al-Nabawiyyah; Mubarakpuri (1995). Raheeq al-Makhtum. IIPH."},
+    {sub:"Tajwid",q:"Apakah yang dimaksudkan dengan mad lazim?",opts:["Memanjangkan sebutan huruf mad selama 2 harakat","Memanjangkan sebutan huruf mad selama 6 harakat wajib","Memanjangkan sebutan huruf mad selama 4-5 harakat","Memanjangkan sebutan mengikut kehendak pembaca"],ans:1,exp:"Mad lazim (مد لازم) ialah memanjangkan sebutan sebanyak 6 harakat (3 alif) yang WAJIB dilakukan. Ia berlaku apabila huruf mad bertemu dengan huruf yang bertasydid atau sukun lazim dalam satu kalimah. Contoh: الصَّاخَّة ، الحَاقَّة dalam al-Quran.",ref:"Sumber: al-Jazariyyah; Mohd Asri (2014). Panduan Lengkap Ilmu Tajwid. Karya Bestari."},
+    {sub:"Bahasa Arab",q:"Apakah perbezaan antara fi'il madhi dan fi'il mudhari' dalam bahasa Arab?",opts:["Madhi = akan berlaku, Mudhari' = pernah berlaku","Madhi = masa lepas, Mudhari' = masa kini atau akan datang","Madhi = perintah, Mudhari' = masa kini","Tiada perbezaan, kedua-duanya sama"],ans:1,exp:"Fi'il Madhi (فعل ماضٍ) merujuk kepada perbuatan yang SUDAH BERLAKU (masa lampau). Contoh: كَتَبَ (dia telah menulis). Fi'il Mudhari' (فعل مضارع) pula merujuk kepada perbuatan yang SEDANG atau AKAN BERLAKU. Contoh: يَكْتُبُ (dia sedang/akan menulis). Perbezaan ini asas dalam ilmu Nahu Arab.",ref:"Sumber: al-Ghalayyini (2005). Jami' al-Durus al-'Arabiyyah. Jld.1; Ibn Ajurrum. al-Ajurrumiyyah."},
+    {sub:"Feqah",q:"Dalam solat berjemaah, di manakah kedudukan makmum wanita yang ideal?",opts:["Di hadapan imam","Sejajar dengan imam","Di belakang makmum lelaki","Di sebelah kanan imam"],ans:2,exp:"Mengikut mazhab Syafie dan ulama majoriti, kedudukan ideal makmum wanita ialah di belakang saf makmum lelaki. Sekiranya hanya ada seorang makmum wanita, ia tetap berdiri di belakang imam lelaki (berbeza dengan makmum lelaki yang berdiri di sebelah kanan imam).",ref:"Sumber: al-Nawawi, Imam. Raudhah al-Talibin. Jld.1; Kementerian Agama Malaysia - Fatwa Solat Berjemaah."},
+    {sub:"Sirah",q:"Apakah nama perjanjian yang dimeterai antara Nabi Muhammad SAW dengan penduduk Madinah selepas hijrah?",opts:["Perjanjian Hudaibiyyah","Perjanjian Aqabah","Sahifah Madinah (Piagam Madinah)","Perjanjian Umar"],ans:2,exp:"Sahifah Madinah atau Piagam Madinah (Dustur al-Madinah) ialah perjanjian bertulis pertama dalam Islam yang digubal oleh Nabi SAW selepas hijrah (622 M). Ia menetapkan hak dan tanggungjawab kaum Muslim, Yahudi, dan Arab pagan di Madinah, menjadikannya antara dokumen perlembagaan terawal dalam sejarah.",ref:"Sumber: Ibn Hisyam. Sirah al-Nabawiyyah; Hamidullah, M. (1975). The First Written Constitution in the World."},
+    // BONUS
+    {sub:"Bonus Diyanet",q:"Apakah nama jabatan agama utama di Turkiye yang bertanggungjawab menguruskan hal ehwal Islam?",opts:["JAKIM Turkiye","Diyanet İşleri Başkanlığı","Kementerian Agama Turkiye","Majlis Ulama Turkiye"],ans:1,exp:"Diyanet İşleri Başkanlığı (Jabatan Hal Ehwal Keagamaan) ialah jabatan kerajaan Turkiye yang bertanggungjawab menguruskan masjid, imam, khatib, pengajian agama, dan penerbitan keagamaan di seluruh Turkiye. Ia ditubuhkan pada 1924 dan berada di bawah pejabat Perdana Menteri.",ref:"Sumber: Laman Rasmi Diyanet İşleri Başkanlığı (diyanet.gov.tr)."},
+  ]
+};
+
+// Additional FAKTA MENARIK (fun facts)
+const FAKTA = [
+  {title:"Selat Bosphorus - Pintu Dua Benua",icon:"🌊",content:"Istanbul ialah satu-satunya ibu kota dunia yang terletak di dua benua serentak! Selat Bosphorus yang lebarnya hanya 700m di titik tersempit memisahkan Eropah dan Asia. Setiap hari lebih 2,000 kapal belayar melaluinya."},
+  {title:"Tulip Berasal dari Turkiye, Bukan Belanda!",icon:"🌷",content:"Tulip sebenarnya berasal dari Anatolia (Turkiye) dan dibawa ke Eropah pada abad ke-16. Belanda kemudian membangunkannya sebagai industri bunga. Perkataan 'tulip' datang dari bahasa Turkiye 'tülbend' yang bermaksud serban."},
+  {title:"Kopi Turki - Warisan UNESCO",icon:"☕",content:"Budaya kopi Turki (Türk kahvesi) telah disenaraikan sebagai Warisan Tidak Ketara UNESCO pada 2013. Cara penyediaan kopi Turki dengan cezvedir unik dan berbeza dari kopi moden. Orang Turki juga menggunakan sisa kopi untuk membaca nasib!"},
+  {title:"Jalaluddin Rumi - Penyair Agung Dunia",icon:"📜",content:"Jalaluddin Rumi, pengasas Tarikat Maulawiyyah dan tarian Sema, adalah penyair paling banyak dibaca di Amerika Syarikat selama beberapa dekad. Karyanya Masnawi Manawi ditulis dalam bahasa Parsi di Konya, Turkiye."},
+  {title:"Masjid Agung Camlica - Masjid Terbesar Eropah",icon:"🕌",content:"Masjid Camlica (Çamlıca Camii) di Istanbul yang dirasmikan pada 2019 ialah masjid terbesar di Eropah dengan kapasiti 63,000 jemaah. Ia boleh dilihat dari hampir seluruh Istanbul kerana dibina di atas bukit tertinggi kota."},
+  {title:"Biasiswa TDV - Peluang Emas",icon:"🎓",content:"Vakıf Diyanet Turkiye (TDV) menawarkan biasiswa kepada pelajar dari lebih 130 negara termasuk Malaysia. Biasiswa merangkumi yuran pengajian, penginapan, elaun bulanan, dan tiket penerbangan. Ia salah satu biasiswa agama paling komprehensif di dunia."},
+  {title:"Bahasa Melayu dan Bahasa Turkiye - Persamaan Unik",icon:"🗣️",content:"Bahasa Turkiye dan Bahasa Melayu berkongsi beberapa perkataan Arab yang sama (melalui pengaruh Islam), seperti 'kitab', 'mekân' (tempat), 'millet' (bangsa). Kedua-dua bahasa juga menggunakan tulisan Latin (selepas reformasi Atatürk untuk Turkiye pada 1928)."},
+];
+
+// ============================================================
+// STATE MANAGEMENT
+// ============================================================
+let state = {
+  mode: 'casual',
+  category: null,
+  questions: [],
+  currentQ: 0,
+  answers: [], // {qIndex, correct, category}
+  answered: false,
+  timerInterval: null,
+  timeLeft: 20,
+  totalTimePerQ: 20,
+  sessions: [], // history
+  stats: {exp:0, coins:0, level:1, correct:0, wrong:0, answered:{}},
+  soundOn: true
+};
+
+// Load from localStorage
+function loadState(){
+  try{
+    const saved = localStorage.getItem('diyanetprep_state');
+    if(saved){const d=JSON.parse(saved);state.stats=d.stats||state.stats;state.sessions=d.sessions||[];}
+  }catch(e){}
+  updateHUD();
+}
+function saveState(){
+  try{localStorage.setItem('diyanetprep_state',JSON.stringify({stats:state.stats,sessions:state.sessions}));}catch(e){}
+}
+
+// ============================================================
+// AUDIO ENGINE (Web Audio API)
+// ============================================================
+let audioCtx = null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+
+function playBeep(freq,dur,type='sine',vol=0.3,detune=0){
+  if(!state.soundOn)return;
+  try{
+    const ctx=getAudio();const o=ctx.createOscillator();const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime);
+    if(detune)o.detune.setValueAtTime(detune,ctx.currentTime);
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function playCorrect(){playBeep(523,0.15,'sine',0.3);setTimeout(()=>playBeep(659,0.15,'sine',0.3),150);setTimeout(()=>playBeep(784,0.3,'sine',0.3),300);}
+function playWrong(){playBeep(200,0.1,'sawtooth',0.2);setTimeout(()=>playBeep(150,0.3,'sawtooth',0.2),120);}
+function playClick(){playBeep(440,0.05,'sine',0.15);}
+function playTick(){if(state.soundOn)playBeep(600,0.04,'square',0.1);}
+function playCelebration(){
+  const notes=[523,659,784,1047];
+  notes.forEach((f,i)=>setTimeout(()=>playBeep(f,0.2,'sine',0.4),i*120));
+}
+
+function toggleSound(){
+  state.soundOn=!state.soundOn;
+  document.getElementById('soundBtn').textContent=state.soundOn?'🔊':'🔇';
+}
+
+// ============================================================
+// CURSOR GLOW
+// ============================================================
+document.addEventListener('mousemove',e=>{
+  const g=document.getElementById('cursor-glow');
+  g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';
+});
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function initParticles(){
+  const c=document.getElementById('particles');
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div');p.className='particle';
+    p.style.left=Math.random()*100+'%';
+    p.style.animationDuration=(8+Math.random()*12)+'s';
+    p.style.animationDelay=(Math.random()*15)+'s';
+    p.style.width=p.style.height=(2+Math.random()*4)+'px';
+    p.style.background=['var(--gold)','#fff','var(--teal)','var(--sky)'][Math.floor(Math.random()*4)];
+    p.style.opacity='0';
+    c.appendChild(p);
+  }
+}
+
+// ============================================================
+// HUD UPDATE
+// ============================================================
+function updateHUD(){
+  const s=state.stats;
+  document.getElementById('level-display').textContent='Tahap '+s.level;
+  document.getElementById('exp-display').textContent=s.exp+' EXP';
+  document.getElementById('coin-display').textContent=s.coins+' Syiling';
+  const expNeeded=getLevelExp(s.level);
+  const prevExp=s.level>1?getLevelExp(s.level-1):0;
+  const pct=Math.min(100,((s.exp-prevExp)/(expNeeded-prevExp)*100));
+  document.getElementById('exp-bar').style.width=pct+'%';
+  document.getElementById('exp-bar-label').textContent=s.exp+' / '+expNeeded;
+}
+function getLevelExp(lvl){return lvl*100;}
+
+// ============================================================
+// SCREEN MANAGEMENT
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='screen-analysis')renderAnalysis();
+}
+
+// ============================================================
+// MODE & QUIZ START
+// ============================================================
+function selectMode(m){
+  state.mode=m;playClick();
+  document.getElementById('tab-casual').className='tab'+(m==='casual'?' active':'');
+  document.getElementById('tab-hard').className='tab'+(m==='hard'?' active':'');
+}
+
+function startQuiz(cat){
+  playClick();
+  state.category=cat;
+  state.currentQ=0;
+  state.answers=[];
+  state.answered=false;
+
+  // Build question pool
+  let pool=QUESTIONS[cat].filter(q=>q.sub!=='Bonus Diyanet');
+  let bonus=QUESTIONS[cat].filter(q=>q.sub==='Bonus Diyanet');
+
+  // Shuffle
+  shuffle(pool);
+  let selected=pool.slice(0,9);
+
+  // Insert bonus randomly between Q3-Q7
+  if(bonus.length){
+    const bq=bonus[Math.floor(Math.random()*bonus.length)];
+    const pos=3+Math.floor(Math.random()*4);
+    selected.splice(pos,0,bq);
+  }
+  state.questions=selected.slice(0,10);
+
+  showScreen('screen-quiz');
+  renderQuestion();
+}
+
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
+
+// ============================================================
+// QUESTION RENDERING
+// ============================================================
+function renderQuestion(){
+  const q=state.questions[state.currentQ];
+  const total=state.questions.length;
+  const pct=((state.currentQ)/total)*100;
+
+  document.getElementById('quiz-progress').style.width=pct+'%';
+  document.getElementById('quiz-counter').textContent=(state.currentQ+1)+' / '+total;
+  document.getElementById('question-text').textContent=q.q;
+  document.getElementById('q-subcategory').textContent=q.sub;
+  document.getElementById('explanation-container').style.display='none';
+
+  // Category badge
+  const catNames={turkiye:'🇹🇷 Turkiye',malaysia:'🇲🇾 Malaysia',agama:'☪️ Agama'};
+  document.getElementById('quiz-category-badge').textContent=catNames[state.category]||'Kuiz';
+
+  // Build answers
+  const ac=document.getElementById('answers-container');
+  ac.innerHTML='';
+  const letters=['A','B','C','D'];
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='answer-opt';
+    btn.innerHTML=`<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick=()=>selectAnswer(i);
+    ac.appendChild(btn);
+  });
+
+  state.answered=false;
+
+  // Timer
+  clearInterval(state.timerInterval);
+  if(state.mode==='hard'){
+    document.getElementById('timer-container').style.display='block';
+    state.timeLeft=state.totalTimePerQ;
+    updateTimerUI();
+    state.timerInterval=setInterval(()=>{
+      state.timeLeft--;
+      playTick();
+      updateTimerUI();
+      if(state.timeLeft<=0){clearInterval(state.timerInterval);timeUp();}
+    },1000);
+  } else {
+    document.getElementById('timer-container').style.display='none';
+  }
+}
+
+function updateTimerUI(){
+  const t=state.timeLeft;const pct=t/state.totalTimePerQ;
+  const circ=163.4;const offset=circ-(circ*pct);
+  document.getElementById('timer-circle').style.strokeDashoffset=offset;
+  const el=document.getElementById('timer-text');
+  el.textContent=t;
+  el.className='timer-text'+(t<=5?' timer-urgent':'');
+  document.getElementById('timer-circle').style.stroke=t<=5?'var(--ruby)':t<=10?'var(--gold)':'var(--emerald)';
+}
+
+function timeUp(){
+  if(state.answered)return;
+  state.answered=true;
+  showExplanation(-1);
+}
+
+function selectAnswer(idx){
+  if(state.answered)return;
+  state.answered=true;
+  clearInterval(state.timerInterval);
+  playClick();
+
+  const q=state.questions[state.currentQ];
+  const correct=(idx===q.ans);
+
+  // Highlight options
+  document.querySelectorAll('.answer-opt').forEach((btn,i)=>{
+    btn.classList.add('disabled');
+    if(i===q.ans)btn.classList.add('correct');
+    else if(i===idx&&!correct)btn.classList.add('wrong');
+  });
+
+  if(correct){playCorrect();gainEXP(10);gainCoin(2);}
+  else {playWrong();}
+
+  state.answers.push({q:state.currentQ,correct,cat:q.sub,qText:q.q,ansText:q.opts[idx],correctText:q.opts[q.ans]});
+  state.stats.correct+=correct?1:0;
+  state.stats.wrong+=correct?0:1;
+
+  showExplanation(idx);
+  saveState();
+}
+
+function gainEXP(amt){
+  state.stats.exp+=amt;
+  const needed=getLevelExp(state.stats.level);
+  if(state.stats.exp>=needed){state.stats.level++;showToast('🎉 Tahap meningkat! Kini Tahap '+state.stats.level);}
+  updateHUD();
+}
+function gainCoin(amt){state.stats.coins+=amt;updateHUD();}
+
+function showExplanation(selectedIdx){
+  const q=state.questions[state.currentQ];
+  const correct=(selectedIdx===q.ans);
+  const timedOut=(selectedIdx===-1);
+
+  document.getElementById('answer-emoji').textContent=timedOut?'⏰':correct?'✅':'❌';
+  document.getElementById('answer-verdict').textContent=timedOut?'Masa Tamat! Jawapan: '+q.opts[q.ans]:correct?'Betul! Syabas!':'Salah. Jawapan yang betul: '+q.opts[q.ans];
+  document.getElementById('answer-verdict').style.color=timedOut?'var(--gold)':correct?'var(--emerald)':'var(--ruby)';
+  document.getElementById('explanation-text').textContent=q.exp;
+  document.getElementById('reference-text').textContent='📚 '+q.ref;
+  document.getElementById('explanation-container').style.display='block';
+
+  // Scroll to explanation
+  setTimeout(()=>document.getElementById('explanation-container').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
+}
+
+function nextQuestion(){
+  playClick();
+  state.currentQ++;
+  if(state.currentQ>=state.questions.length){showResult();}
+  else {renderQuestion();}
+}
+
+// ============================================================
+// RESULT SCREEN
+// ============================================================
+function showResult(){
+  clearInterval(state.timerInterval);
+  const correct=state.answers.filter(a=>a.correct).length;
+  const total=state.questions.length;
+  const pct=Math.round((correct/total)*100);
+
+  // Save session
+  const session={date:new Date().toLocaleDateString('ms-MY'),cat:state.category,correct,total,answers:[...state.answers]};
+  state.sessions.push(session);
+  if(state.sessions.length>20)state.sessions.shift();
+  saveState();
+
+  // Bonus coins for completion
+  gainCoin(5);gainEXP(20);
+
+  const grades=[
+    {min:90,emoji:'🏆',title:'Cemerlang!',msg:'Luar biasa! Anda benar-benar bersedia untuk temu duga biasiswa!'},
+    {min:70,emoji:'🥇',title:'Bagus Sekali!',msg:'Prestasi yang sangat baik. Teruskan usaha untuk mencapai kesempurnaan!'},
+    {min:50,emoji:'👍',title:'Boleh Tahan!',msg:'Usaha yang baik! Ulang kaji bahagian yang lemah dan cuba lagi.'},
+    {min:0,emoji:'💪',title:'Jangan Putus Asa!',msg:'Setiap percubaan adalah pembelajaran. Ulang kaji dan cuba sekali lagi!'},
+  ];
+  const grade=grades.find(g=>pct>=g.min);
+
+  const wrongAnswers=state.answers.filter(a=>!a.correct);
+
+  document.getElementById('result-content').innerHTML=`
+    <div class="celebration">
+      <div class="trophy">${grade.emoji}</div>
+      <h1 style="margin:16px 0 8px;background:linear-gradient(135deg,var(--gold),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${grade.title}</h1>
+      <p style="color:var(--muted);margin-bottom:24px">${grade.msg}</p>
+
+      <div class="card" style="margin-bottom:20px">
+        <div style="font-size:48px;font-weight:800;color:${pct>=70?'var(--emerald)':pct>=50?'var(--gold)':'var(--ruby)'}">${pct}%</div>
+        <p style="color:var(--muted);margin-top:4px">${correct} betul daripada ${total} soalan</p>
+        <div class="progress-bar" style="margin-top:16px"><div class="progress-fill" style="width:${pct}%;background:${pct>=70?'linear-gradient(90deg,var(--emerald),var(--teal))':'linear-gradient(90deg,var(--gold),var(--ruby))'}"></div></div>
+      </div>
+
+      <div class="stat-row" style="justify-content:center;margin-bottom:20px">
+        <div class="stat-badge">⭐ +${20} EXP</div>
+        <div class="stat-badge">🪙 +${5+(correct*2)} Syiling</div>
+        <div class="stat-badge">✅ ${correct} Betul</div>
+        <div class="stat-badge">❌ ${total-correct} Salah</div>
+      </div>
+
+      ${wrongAnswers.length>0?`
+      <div class="card" style="margin-bottom:20px;text-align:left">
+        <h3 style="margin-bottom:16px;color:var(--ruby)">❌ Soalan Yang Salah</h3>
+        ${wrongAnswers.map(a=>`
+          <div style="padding:12px;border-bottom:1px solid var(--border)">
+            <p style="font-size:13px;font-weight:600;margin-bottom:6px">${state.questions[a.q].q}</p>
+            <p style="font-size:12px;color:var(--ruby)">Jawapan anda: ${a.ansText||'(Tamat masa)'}</p>
+            <p style="font-size:12px;color:var(--emerald)">Jawapan betul: ${a.correctText}</p>
+          </div>
+        `).join('')}
+      </div>`:''}
+
+      <div class="grid-2" style="margin-top:8px">
+        <button class="btn btn-gold btn-full" onclick="startQuiz('${state.category}')">🔄 Cuba Lagi</button>
+        <button class="btn btn-ghost btn-full" onclick="showScreen('screen-home');playClick()">🏠 Menu Utama</button>
+      </div>
+    </div>`;
+
+  showScreen('screen-result');
+  if(pct>=70)launchFireworks();
+  playCelebration();
+}
+
+// ============================================================
+// FIREWORKS
+// ============================================================
+function launchFireworks(){
+  const colors=['#f5a623','#27ae60','#3498db','#e74c3c','#9b59b6','#1abc9c'];
+  for(let i=0;i<12;i++){
+    setTimeout(()=>{
+      const fw=document.createElement('div');
+      fw.className='firework';
+      fw.style.cssText=`left:${10+Math.random()*80}%;top:${5+Math.random()*40}%;font-size:${20+Math.random()*20}px`;
+      fw.textContent=['🎉','⭐','✨','🌟','💫','🎊'][Math.floor(Math.random()*6)];
+      fw.style.animation='fadeInUp 0.5s ease, float 1s ease 0.5s forwards';
+      document.body.appendChild(fw);
+      setTimeout(()=>fw.remove(),2000);
+    },i*200);
+  }
+}
+
+// ============================================================
+// ANALYSIS
+// ============================================================
+function renderAnalysis(){
+  const el=document.getElementById('analysis-content');
+  if(!state.sessions.length){
+    el.innerHTML='<div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">📈</div><p style="color:var(--muted)">Tiada data lagi. Sila habiskan sekurang-kurangnya satu sesi kuiz.</p></div>';
+    return;
+  }
+
+  const cats={turkiye:{name:'🇹🇷 Turkiye',correct:0,total:0},malaysia:{name:'🇲🇾 Malaysia',correct:0,total:0},agama:{name:'☪️ Agama',correct:0,total:0}};
+  state.sessions.forEach(s=>{
+    if(cats[s.cat]){cats[s.cat].correct+=s.correct;cats[s.cat].total+=s.total;}
+  });
+
+  const totalSessions=state.sessions.length;
+  const totalCorrect=state.sessions.reduce((a,s)=>a+s.correct,0);
+  const totalQ=state.sessions.reduce((a,s)=>a+s.total,0);
+  const overall=totalQ?Math.round(totalCorrect/totalQ*100):0;
+
+  // Weak categories
+  const weak=Object.entries(cats).filter(([k,v])=>v.total>0&&(v.correct/v.total)<0.6).map(([k,v])=>v.name);
+
+  el.innerHTML=`
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card" style="text-align:center"><div style="font-size:32px;font-weight:700;color:var(--gold)">${overall}%</div><p style="font-size:13px;color:var(--muted)">Purata Keseluruhan</p></div>
+      <div class="card" style="text-align:center"><div style="font-size:32px;font-weight:700;color:var(--sky)">${totalSessions}</div><p style="font-size:13px;color:var(--muted)">Sesi Selesai</p></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:16px">📊 Prestasi Mengikut Kategori</h3>
+      ${Object.entries(cats).map(([k,v])=>{
+        const pct=v.total?Math.round(v.correct/v.total*100):0;
+        const color=pct>=70?'var(--emerald)':pct>=50?'var(--gold)':'var(--ruby)';
+        return `<div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:14px">${v.name}</span><span style="font-size:13px;color:${color};font-weight:600">${pct}% (${v.correct}/${v.total})</span></div>
+          <div class="analysis-bar"><div class="analysis-fill" style="width:${pct}%;background:${color}"></div></div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${weak.length?`<div class="card" style="margin-bottom:20px;border-color:rgba(231,76,60,0.3)">
+      <h3 style="color:var(--ruby);margin-bottom:12px">⚠️ Kategori Lemah</h3>
+      ${weak.map(w=>`<p style="margin-bottom:8px;font-size:14px">• ${w} - Perlukan ulang kaji segera</p>`).join('')}
+      <p style="font-size:13px;color:var(--muted);margin-top:12px">💡 Cadangan: Fokus pada kategori ini dalam sesi latihan seterusnya.</p>
+    </div>`:'<div class="card" style="background:rgba(39,174,96,0.1);border-color:rgba(39,174,96,0.3)"><p style="color:var(--emerald)">✅ Prestasi baik dalam semua kategori! Teruskan!</p></div>'}
+
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:16px">📅 Sejarah Sesi (Terkini)</h3>
+      ${state.sessions.slice(-5).reverse().map(s=>{
+        const pct=Math.round(s.correct/s.total*100);
+        const catMap={turkiye:'🇹🇷',malaysia:'🇲🇾',agama:'☪️'};
+        return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span>${catMap[s.cat]||'📚'} ${s.date}</span>
+          <span style="color:${pct>=70?'var(--emerald)':pct>=50?'var(--gold)':'var(--ruby)'};font-weight:600">${s.correct}/${s.total} (${pct}%)</span>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="grid-2">
+      <button class="btn btn-gold btn-full" onclick="startQuiz(state.sessions.slice(-1)[0]?.cat||'turkiye')">🔄 Kuiz Semula</button>
+      <button class="btn btn-ruby btn-full" onclick="if(confirm('Padam semua data analisis?')){state.sessions=[];state.stats={exp:0,coins:0,level:1,correct:0,wrong:0,answered:{}};saveState();updateHUD();renderAnalysis();}">🗑️ Padam Data</button>
+    </div>`;
+}
+
+// ============================================================
+// FAKTA MENARIK
+// ============================================================
+function showFakta(){
+  playClick();
+  if(state.stats.coins<10){showToast('❌ Syiling tidak mencukupi! Perlukan 10 🪙');return;}
+  state.stats.coins-=10;updateHUD();saveState();
+
+  const f=FAKTA[Math.floor(Math.random()*FAKTA.length)];
+  document.getElementById('fakta-content').innerHTML=`
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:50px">${f.icon}</div>
+      <h3 style="margin-top:12px">${f.title}</h3>
+    </div>
+    <p style="font-size:14px;line-height:1.8;color:rgba(240,240,240,0.9)">${f.content}</p>
+    <div style="margin-top:20px;padding:12px;background:rgba(245,166,35,0.15);border-radius:8px;font-size:13px;color:var(--gold)">
+      💡 10 syiling telah digunakan. Anda kini mempunyai ${state.stats.coins} syiling.
+    </div>`;
+  document.getElementById('modal-fakta').style.display='flex';
+  playCelebration();
+}
+
+// ============================================================
+// QUIT QUIZ
+// ============================================================
+function confirmQuit(){playClick();document.getElementById('modal-quit').style.display='flex';}
+function quitQuiz(){
+  clearInterval(state.timerInterval);
+  document.getElementById('modal-quit').style.display='none';
+  showScreen('screen-home');
+  playClick();
+}
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportData(){
+  playClick();
+  const data=JSON.stringify({stats:state.stats,sessions:state.sessions},null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='diyanetprep_data.json';a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Data berjaya dieksport!');
+}
+
+function importData(){
+  playClick();
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        if(d.stats)state.stats=d.stats;
+        if(d.sessions)state.sessions=d.sessions;
+        saveState();updateHUD();
+        showToast('✅ Data berjaya diimport!');
+      }catch{showToast('❌ Fail tidak sah!');}
+    };reader.readAsText(file);
+  };input.click();
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initParticles();
+loadState();
+updateHUD();
+</script>
+</body>
+</html>
